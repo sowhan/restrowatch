@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 def tag_severity(rating: int, review_text: str) -> str:
-    if not ANTHROPIC_API_KEY:
+    if not GROQ_API_KEY:
         return _rule_based_fallback(rating, review_text)
 
     prompt = f"""You are a restaurant review classifier. Given a customer review and star rating,
@@ -30,22 +30,22 @@ Respond with ONLY the severity word. Nothing else."""
 
     try:
         response = httpx.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
             },
             json={
-                "model": ANTHROPIC_MODEL,
+                "model": GROQ_MODEL,
                 "max_tokens": 10,
                 "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
             },
             timeout=10.0,
         )
 
         if response.status_code == 200:
-            result = response.json()["content"][0]["text"].strip().lower()
+            result = response.json()["choices"][0]["message"]["content"].strip().lower()
             if result in ("critical", "high", "medium", "low"):
                 return result
 
@@ -61,7 +61,7 @@ def _rule_based_fallback(rating: int, review_text: str) -> str:
     critical_keywords = [
         "hair", "foreign", "poison", "sick", "ill", "vomit", "hospital",
         "health hazard", "food safety", "hygiene", "spoiled", "rotten",
-        "disgusting", "worst", "never again", "health hazard",
+        "disgusting", "worst", "never again",
     ]
 
     high_keywords = [
