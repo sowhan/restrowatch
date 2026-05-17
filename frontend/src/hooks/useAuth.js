@@ -9,16 +9,28 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   const fetchUserProfile = useCallback(async (userId) => {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-    if (data) {
-      setRole(data.role)
-      setRestaurantId(data.restaurant_id)
-      setUser({ ...data, email: session?.user?.email })
+      if (data) {
+        setRole(data.role)
+        setRestaurantId(data.restaurant_id)
+        setUser({ ...data, email: session?.user?.email })
+      } else {
+        setUser(null)
+        setRole(null)
+        setRestaurantId(null)
+      }
+    } catch {
+      setUser(null)
+      setRole(null)
+      setRestaurantId(null)
+    } finally {
+      setLoading(false)
     }
   }, [session])
 
@@ -64,6 +76,7 @@ export function useAuth() {
     setRole(null)
     setRestaurantId(null)
     setSession(null)
+    setLoading(false)
   }
 
   return { user, session, role, restaurantId, loading, signIn, signOut }
