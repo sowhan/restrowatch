@@ -1,0 +1,49 @@
+import axios from 'axios'
+import { supabase } from './supabase'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession()
+  if (data.session?.access_token) {
+    config.headers.Authorization = `Bearer ${data.session.access_token}`
+  }
+  return config
+})
+
+export const reviewsApi = {
+  list: (params = {}) => api.get('/reviews', { params }),
+  get: (id) => api.get(`/reviews/${id}`),
+  updateStatus: (id, status) => api.patch(`/reviews/${id}/status?status=${status}`),
+  logAction: (id, action) => api.post(`/reviews/${id}/actions`, action),
+  getTimeline: (id) => api.get(`/reviews/${id}/timeline`),
+}
+
+export const settingsApi = {
+  getRestaurants: () => api.get('/settings/restaurants'),
+  getOverview: () => api.get('/settings/dashboard/overview'),
+  getUnmatchedEmails: () => api.get('/settings/unmatched-emails'),
+  assignUnmatchedEmail: (id, restaurantId) =>
+    api.post(`/settings/unmatched-emails/${id}/assign?restaurant_id=${restaurantId}`),
+  getSLAConfig: () => api.get('/settings/sla-config'),
+  updateSLAConfig: (config) => api.patch('/settings/sla-config', config),
+}
+
+export const gmailApi = {
+  getAuthUrl: () => api.get('/gmail/auth-url'),
+  getStatus: () => api.get('/gmail/status'),
+  triggerPoll: () => api.get('/gmail/poll'),
+}
+
+export const authApi = {
+  verify: () => api.get('/auth/verify'),
+}
+
+export default api
