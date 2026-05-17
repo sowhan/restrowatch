@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+
+const AUTH_TIMEOUT_MS = 5000
 
 export function useAuth() {
   const [user, setUser] = useState(null)
@@ -7,6 +9,19 @@ export function useAuth() {
   const [role, setRole] = useState(null)
   const [restaurantId, setRestaurantId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const timeoutRef = useRef(null)
+
+  const clearAuthTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }, [])
+
+  const forceUnblock = useCallback(() => {
+    clearAuthTimeout()
+    setLoading(false)
+  }, [clearAuthTimeout])
 
   const fetchUserProfile = useCallback(async (userId) => {
     try {
@@ -30,21 +45,26 @@ export function useAuth() {
       setRole(null)
       setRestaurantId(null)
     } finally {
+      clearAuthTimeout()
       setLoading(false)
     }
-  }, [])
+  }, [clearAuthTimeout])
 
   useEffect(() => {
+    timeoutRef.current = setTimeout(forceUnblock, AUTH_TIMEOUT_MS)
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setSession(session)
         if (session?.user) {
           fetchUserProfile(session.user.id)
         } else {
+          clearAuthTimeout()
           setLoading(false)
         }
       })
       .catch(() => {
+        clearAuthTimeout()
         setLoading(false)
       })
 
@@ -57,13 +77,17 @@ export function useAuth() {
           setUser(null)
           setRole(null)
           setRestaurantId(null)
+          clearAuthTimeout()
           setLoading(false)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [fetchUserProfile])
+    return () => {
+      subscription.unsubscribe()
+      clearAuthTimeout()
+    }
+  }, [fetchUserProfile, forceUnblock, clearAuthTimeout])
 
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({

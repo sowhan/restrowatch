@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 
 const ERROR_MESSAGES = {
@@ -16,7 +16,6 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
   const { addToast } = useToast()
   const navigate = useNavigate()
 
@@ -26,8 +25,13 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await signIn(email, password)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (signInError) throw signInError
       addToast('Signed in successfully', 'success')
+      navigate('/')
     } catch (err) {
       const message = ERROR_MESSAGES[err.message] || err.message || 'Login failed'
       setError(message)
