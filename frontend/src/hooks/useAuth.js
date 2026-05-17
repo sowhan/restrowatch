@@ -25,25 +25,23 @@ export function useAuth() {
 
   const fetchUserProfile = useCallback(async (userId) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
 
+      if (error) {
+        // Profile query failed — keep user alive from session
+        console.error('Profile fetch error:', error.message)
+      }
+
       if (data) {
         setRole(data.role)
         setRestaurantId(data.restaurant_id)
         setUser({ ...data, email: data.email })
-      } else {
-        setUser(null)
-        setRole(null)
-        setRestaurantId(null)
       }
-    } catch {
-      setUser(null)
-      setRole(null)
-      setRestaurantId(null)
+      // If no data, don't clear user — let session user persist
     } finally {
       clearAuthTimeout()
       setLoading(false)

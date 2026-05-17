@@ -30,8 +30,23 @@ export default function Login() {
         password,
       })
       if (signInError) throw signInError
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', (await supabase.auth.getUser()).data.user.id)
+        .single()
+
+      if (!profile) {
+        setError('No account found. Contact your administrator.')
+        addToast('No account found', 'error')
+        setLoading(false)
+        return
+      }
+
       addToast('Signed in successfully', 'success')
-      navigate('/')
+      const path = profile.role === 'owner' ? '/owner' : '/manager'
+      navigate(path, { replace: true })
     } catch (err) {
       const message = ERROR_MESSAGES[err.message] || err.message || 'Login failed'
       setError(message)
