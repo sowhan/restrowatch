@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useRealtimeReviews } from '../hooks/useRealtimeReviews'
+import { useToast } from '../components/Toast'
 import { reviewsApi } from '../lib/api'
 import LiveFeed from '../components/LiveFeed'
 import StatCard from '../components/StatCard'
 
 export default function ManagerDashboard() {
   const { user, signOut, loading: authLoading, restaurantId } = useAuth()
+  const { addToast } = useToast()
   const navigate = useNavigate()
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
@@ -31,6 +34,7 @@ export default function ManagerDashboard() {
 
   const loadData = async () => {
     try {
+      setError(null)
       const reviewsData = await reviewsApi.list({
         restaurant_id: restaurantId,
         limit: 100,
@@ -38,6 +42,8 @@ export default function ManagerDashboard() {
       setReviews(reviewsData.data || [])
     } catch (err) {
       console.error('Failed to load reviews:', err)
+      setError('Failed to load reviews')
+      addToast('Failed to load reviews', 'error')
     } finally {
       setLoading(false)
     }
@@ -62,7 +68,6 @@ export default function ManagerDashboard() {
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-accent">RestroWatch</h1>
@@ -88,18 +93,37 @@ export default function ManagerDashboard() {
       </header>
 
       <main className="p-6 max-w-4xl mx-auto space-y-6">
-        {/* Restaurant Header */}
+        {error && (
+          <div className="flex items-center gap-2 text-critical text-sm bg-critical/10 border border-critical/20 rounded-lg px-4 py-3">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+            <button onClick={loadData} className="ml-auto text-xs underline">Retry</button>
+          </div>
+        )}
+
         <div className="bg-card border border-border rounded-lg p-4">
           <h2 className="text-lg font-semibold">{user.restaurant_name || 'Your Restaurant'}</h2>
-          <div className="grid grid-cols-4 gap-4 mt-3">
-            <StatCard label="Total" value={stats.total} />
-            <StatCard label="Open" value={stats.open} color="critical" />
-            <StatCard label="Critical" value={stats.critical} color="critical" />
-            <StatCard label="Resolved" value={stats.resolved} color="low" />
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-4 gap-4 mt-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-3 bg-border rounded w-12 mb-2" />
+                  <div className="h-6 bg-border rounded w-8" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-4 mt-3">
+              <StatCard label="Total" value={stats.total} />
+              <StatCard label="Open" value={stats.open} color="critical" />
+              <StatCard label="Critical" value={stats.critical} color="critical" />
+              <StatCard label="Resolved" value={stats.resolved} color="low" />
+            </div>
+          )}
         </div>
 
-        {/* Filter Bar */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-400 mr-2">Severity:</span>
           {['all', 'critical', 'high', 'medium', 'low'].map((s) => (
@@ -131,7 +155,6 @@ export default function ManagerDashboard() {
           ))}
         </div>
 
-        {/* Live Review Feed */}
         <LiveFeed reviews={filteredReviews} loading={loading} />
       </main>
     </div>

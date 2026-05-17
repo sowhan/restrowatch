@@ -17,10 +17,11 @@ export function useRealtimeReviews(initialReviews = []) {
     })
 
     if (newReview.severity === 'critical' || newReview.severity === 'high') {
-      if (window.showNotification) {
-        window.showNotification(
-          `${newReview.severity.toUpperCase()} review`,
-          `${newReview.restaurants?.name || 'Restaurant'} — ${newReview.review_text?.slice(0, 80) || 'New review received'}`
+      const r = newReview.restaurants || {}
+      if (window.__showToast) {
+        window.__showToast(
+          `${newReview.severity.toUpperCase()} review from ${r.name || 'Restaurant'}`,
+          'warning'
         )
       }
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { reviewsApi } from '../lib/api'
+import { useToast } from '../components/Toast'
 import SeverityBadge from '../components/SeverityBadge'
 import StatusBadge from '../components/StatusBadge'
 import PlatformBadge from '../components/PlatformBadge'
@@ -11,9 +12,11 @@ import { formatStars, formatTimeAgo, formatDateTime, formatFullDate } from '../u
 export default function ReviewDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const [review, setReview] = useState(null)
   const [timeline, setTimeline] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -21,6 +24,8 @@ export default function ReviewDetail() {
 
   const loadData = async () => {
     try {
+      setError(null)
+      setLoading(true)
       const [reviewData, timelineData] = await Promise.all([
         reviewsApi.get(id),
         reviewsApi.getTimeline(id),
@@ -29,6 +34,8 @@ export default function ReviewDetail() {
       setTimeline(timelineData.data || [])
     } catch (err) {
       console.error('Failed to load review:', err)
+      setError('Failed to load review details')
+      addToast('Failed to load review details', 'error')
     } finally {
       setLoading(false)
     }
@@ -36,21 +43,28 @@ export default function ReviewDetail() {
 
   const handleActionLogged = () => {
     loadData()
+    addToast('Action logged successfully', 'success')
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-gray-400">Loading review...</div>
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-accent" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-gray-400 text-sm">Loading review...</span>
+        </div>
       </div>
     )
   }
 
-  if (!review) {
+  if (error || !review) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400 text-lg">Review not found</p>
+          <p className="text-gray-400 text-lg">{error || 'Review not found'}</p>
           <button
             onClick={() => navigate(-1)}
             className="mt-3 text-accent text-sm hover:underline"
@@ -66,7 +80,6 @@ export default function ReviewDetail() {
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <button
           onClick={() => navigate(-1)}
@@ -85,7 +98,6 @@ export default function ReviewDetail() {
       </header>
 
       <main className="p-6 max-w-3xl mx-auto space-y-6">
-        {/* Review Details */}
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
             {review.customer_name && (
@@ -121,23 +133,25 @@ export default function ReviewDetail() {
           )}
         </div>
 
-        {/* Timeline */}
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wide">Timeline</h3>
-          <div className="space-y-3">
-            {timeline.map((event, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="w-2 h-2 rounded-full bg-accent mt-2 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-200">{event.description}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(event.timestamp)}</p>
+          {timeline.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-4">No events recorded yet</p>
+          ) : (
+            <div className="space-y-3">
+              {timeline.map((event, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-2 h-2 rounded-full bg-accent mt-2 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-200">{event.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(event.timestamp)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Action Logger */}
         {review.status !== 'resolved' && (
           <ActionLogger reviewId={review.id} review={review} onActionLogged={handleActionLogged} />
         )}

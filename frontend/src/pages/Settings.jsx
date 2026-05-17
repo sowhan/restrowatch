@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../components/Toast'
 import { gmailApi, settingsApi } from '../lib/api'
 import { formatFullDate } from '../utils/formatters'
 
 export default function Settings() {
   const { user, signOut, loading: authLoading } = useAuth()
+  const { addToast } = useToast()
   const navigate = useNavigate()
   const [gmailStatus, setGmailStatus] = useState(null)
   const [unmatchedEmails, setUnmatchedEmails] = useState([])
   const [restaurants, setRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,6 +29,7 @@ export default function Settings() {
 
   const loadData = async () => {
     try {
+      setError(null)
       const [gmailData, unmatchedData, restaurantsData] = await Promise.all([
         gmailApi.getStatus(),
         user.role === 'owner' ? settingsApi.getUnmatchedEmails() : { data: [] },
@@ -36,6 +40,8 @@ export default function Settings() {
       setRestaurants(restaurantsData.data || [])
     } catch (err) {
       console.error('Failed to load settings:', err)
+      setError('Failed to load settings')
+      addToast('Failed to load settings', 'error')
     } finally {
       setLoading(false)
     }
@@ -47,24 +53,28 @@ export default function Settings() {
       window.location.href = data.auth_url
     } catch (err) {
       console.error('Failed to get Gmail auth URL:', err)
+      addToast('Failed to connect Gmail', 'error')
     }
   }
 
   const triggerPoll = async () => {
     try {
       await gmailApi.triggerPoll()
-      alert('Gmail poll triggered successfully')
+      addToast('Gmail poll triggered successfully', 'success')
     } catch (err) {
       console.error('Failed to trigger poll:', err)
+      addToast('Failed to trigger poll', 'error')
     }
   }
 
   const assignEmail = async (emailId, restaurantId) => {
     try {
       await settingsApi.assignUnmatchedEmail(emailId, restaurantId)
+      addToast('Email assigned successfully', 'success')
       loadData()
     } catch (err) {
       console.error('Failed to assign email:', err)
+      addToast('Failed to assign email', 'error')
     }
   }
 
@@ -91,26 +101,42 @@ export default function Settings() {
       </header>
 
       <main className="p-6 max-w-3xl mx-auto space-y-6">
-        {/* Profile */}
+        {error && (
+          <div className="flex items-center gap-2 text-critical text-sm bg-critical/10 border border-critical/20 rounded-lg px-4 py-3">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+            <button onClick={loadData} className="ml-auto text-xs underline">Retry</button>
+          </div>
+        )}
+
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Profile</h2>
-          <div className="space-y-2 text-sm">
-            <div>
-              <span className="text-gray-500">Name:</span>
-              <span className="ml-2">{user.name || 'N/A'}</span>
+          {loading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 bg-border rounded w-32" />
+              <div className="h-4 bg-border rounded w-48" />
+              <div className="h-4 bg-border rounded w-24" />
             </div>
-            <div>
-              <span className="text-gray-500">Email:</span>
-              <span className="ml-2">{user.email}</span>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-gray-500">Name:</span>
+                <span className="ml-2">{user.name || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Email:</span>
+                <span className="ml-2">{user.email}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Role:</span>
+                <span className="ml-2 capitalize">{user.role}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-500">Role:</span>
-              <span className="ml-2 capitalize">{user.role}</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Gmail Connection */}
         {user.role === 'owner' && (
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Gmail Connection</h2>
@@ -129,7 +155,7 @@ export default function Settings() {
                 {!gmailStatus?.connected && (
                   <button
                     onClick={connectGmail}
-                    className="px-4 py-2 bg-accent text-white rounded text-sm font-medium"
+                    className="px-4 py-2 bg-accent text-white rounded text-sm font-medium hover:bg-orange-600"
                   >
                     Connect Gmail
                   </button>
@@ -147,7 +173,6 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Unmatched Emails (Owner Only) */}
         {user.role === 'owner' && unmatchedEmails.length > 0 && (
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">
@@ -180,6 +205,12 @@ export default function Settings() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {user.role === 'owner' && unmatchedEmails.length === 0 && !loading && (
+          <div className="bg-card border border-border rounded-lg p-6 text-center">
+            <p className="text-gray-500 text-sm">No unmatched emails</p>
           </div>
         )}
       </main>

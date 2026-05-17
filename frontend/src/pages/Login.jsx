@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../components/Toast'
+
+const ERROR_MESSAGES = {
+  'Invalid login credentials': 'Invalid email or password',
+  'Email not confirmed': 'Please verify your email address before signing in',
+  'Invalid refresh token': 'Session expired. Please sign in again',
+  'Network request failed': 'Connection error. Check your internet and try again',
+  'Too many requests': 'Too many attempts. Please wait a moment and try again',
+}
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -8,6 +17,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
+  const { addToast } = useToast()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -17,8 +27,11 @@ export default function Login() {
 
     try {
       await signIn(email, password)
+      addToast('Signed in successfully', 'success')
     } catch (err) {
-      setError(err.message || 'Login failed')
+      const message = ERROR_MESSAGES[err.message] || err.message || 'Login failed'
+      setError(message)
+      addToast(message, 'error')
     } finally {
       setLoading(false)
     }
@@ -52,25 +65,42 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-accent"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               required
             />
           </div>
 
           {error && (
-            <p className="text-critical text-sm bg-critical/10 border border-critical/20 rounded-lg px-4 py-2">
-              {error}
-            </p>
+            <div className="flex items-center gap-2 text-critical text-sm bg-critical/10 border border-critical/20 rounded-lg px-4 py-3">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-accent text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
+            className="w-full py-2.5 bg-accent text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
+
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Contact your administrator to get login credentials
+        </p>
       </div>
     </div>
   )

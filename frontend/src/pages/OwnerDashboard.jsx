@@ -2,20 +2,21 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useRealtimeReviews } from '../hooks/useRealtimeReviews'
+import { useToast } from '../components/Toast'
 import { reviewsApi, settingsApi } from '../lib/api'
 import LiveFeed from '../components/LiveFeed'
 import RestaurantRow from '../components/RestaurantRow'
 import StatCard from '../components/StatCard'
-import SeverityBadge from '../components/SeverityBadge'
-import PlatformBadge from '../components/PlatformBadge'
 
 export default function OwnerDashboard() {
   const { user, signOut, loading: authLoading } = useAuth()
+  const { addToast } = useToast()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [overview, setOverview] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [filterRestaurant, setFilterRestaurant] = useState('all')
@@ -35,6 +36,7 @@ export default function OwnerDashboard() {
 
   const loadData = async () => {
     try {
+      setError(null)
       const [overviewData, reviewsData] = await Promise.all([
         settingsApi.getOverview(),
         reviewsApi.list({ limit: 100 }),
@@ -43,6 +45,8 @@ export default function OwnerDashboard() {
       setReviews(reviewsData.data || [])
     } catch (err) {
       console.error('Failed to load dashboard:', err)
+      setError('Failed to load dashboard data')
+      addToast('Failed to load dashboard data', 'error')
     } finally {
       setLoading(false)
     }
@@ -68,7 +72,6 @@ export default function OwnerDashboard() {
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-accent">RestroWatch</h1>
@@ -92,8 +95,26 @@ export default function OwnerDashboard() {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Stats Row */}
-        {overview && (
+        {error && (
+          <div className="flex items-center gap-2 text-critical text-sm bg-critical/10 border border-critical/20 rounded-lg px-4 py-3">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+            <button onClick={loadData} className="ml-auto text-xs underline">Retry</button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-lg p-4 animate-pulse">
+                <div className="h-3 bg-border rounded w-20 mb-3" />
+                <div className="h-6 bg-border rounded w-12" />
+              </div>
+            ))}
+          </div>
+        ) : overview && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Reviews" value={overview.total_reviews} icon="📊" />
             <StatCard label="Critical" value={overview.critical_count} icon="🔴" color="critical" />
@@ -102,8 +123,16 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* Restaurant Grid */}
-        {overview?.restaurants && (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-lg p-4 animate-pulse">
+                <div className="h-4 bg-border rounded w-24 mb-3" />
+                <div className="h-3 bg-border rounded w-16" />
+              </div>
+            ))}
+          </div>
+        ) : overview?.restaurants && (
           <div>
             <h2 className="text-lg font-semibold mb-3">Restaurant Overview</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -114,7 +143,6 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* Filter Bar */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-400 mr-2">Severity:</span>
@@ -151,7 +179,6 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Live Review Feed */}
         <div>
           <h2 className="text-lg font-semibold mb-3">
             Live Review Feed
