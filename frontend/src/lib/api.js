@@ -11,9 +11,13 @@ const api = axios.create({
 })
 
 api.interceptors.request.use(async (config) => {
-  const { data } = await supabase.auth.getSession()
-  if (data.session?.access_token) {
-    config.headers.Authorization = `Bearer ${data.session.access_token}`
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (data.session?.access_token) {
+      config.headers.Authorization = `Bearer ${data.session.access_token}`
+    }
+  } catch {
+    // No session, continue without auth
   }
   return config
 })
@@ -37,8 +41,8 @@ export const reviewsApi = {
 }
 
 export const settingsApi = {
-  getRestaurants: () => api.get('/settings/restaurants'),
-  getOverview: () => api.get('/settings/dashboard/overview'),
+  getRestaurants: () => api.get('/restaurants'),
+  getOverview: () => api.get('/dashboard/overview'),
   getUnmatchedEmails: () => api.get('/settings/unmatched-emails'),
   assignUnmatchedEmail: (id, restaurantId) =>
     api.post(`/settings/unmatched-emails/${id}/assign?restaurant_id=${restaurantId}`),
