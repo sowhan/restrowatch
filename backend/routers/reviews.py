@@ -203,13 +203,14 @@ async def log_action(
     if not review.data:
         raise HTTPException(status_code=404, detail="Review not found")
 
-    # Log the action
-    action_result = supabase.table("review_actions").insert({
+    # Log the action (user_id is nullable for test/unauthenticated requests)
+    action_data = {
         "review_id": review_id,
-        "user_id": "00000000-0000-0000-0000-000000000000",
         "action_type": action_type,
         "note": note,
-    }).execute()
+    }
+
+    action_result = supabase.table("review_actions").insert(action_data).execute()
 
     # Auto-move to in_progress if currently open
     if review.data[0]["status"] == "open":

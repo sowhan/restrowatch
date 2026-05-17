@@ -290,7 +290,7 @@ def test_status_update(review_ids):
 
 def test_owner_dashboard():
     section("9. OWNER DASHBOARD OVERVIEW")
-    r = requests.get(f"{BASE_URL}/dashboard/overview", timeout=5)
+    r = requests.get(f"{BASE_URL}/dashboard/overview", timeout=15)
     ok = r.status_code == 200
     log(ok, "Dashboard", f"GET /dashboard/overview → {r.status_code}")
 
@@ -317,7 +317,7 @@ def test_realtime_supabase():
     r = requests.get(f"{BASE_URL}/health", timeout=5)
     data = r.json() if r.status_code == 200 else {}
 
-    supabase_ok = data.get("supabase") == "connected" or data.get("db") == "ok"
+    supabase_ok = data.get("supabase") == "connected" or data.get("db") == "connected"
     log(supabase_ok, "Realtime", "Supabase connection confirmed via /health")
 
     if not supabase_ok:

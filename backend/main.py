@@ -184,7 +184,20 @@ async def ingest_review(payload: dict):
     ).execute()
 
     if not restaurant.data:
-        # Store as unmatched
+        # Store as unmatched (with dedup check)
+        if email_message_id:
+            existing_unmatched = supabase.table("unmatched_emails").select("id").eq(
+                "email_message_id", email_message_id
+            ).execute()
+            if existing_unmatched.data:
+                return {
+                    "status": "unmatched_duplicate",
+                    "matched": False,
+                    "unmatched": True,
+                    "restaurant_name": restaurant_name,
+                    "message": f"Unmatched email already stored for '{restaurant_name}'",
+                }
+
         supabase.table("unmatched_emails").insert({
             "email_message_id": email_message_id,
             "subject": f"Review for {restaurant_name}",
