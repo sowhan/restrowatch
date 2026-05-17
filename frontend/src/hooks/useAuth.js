@@ -10,7 +10,7 @@ export function useAuth() {
 
   const fetchUserProfile = useCallback(async (userId) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
@@ -19,7 +19,7 @@ export function useAuth() {
       if (data) {
         setRole(data.role)
         setRestaurantId(data.restaurant_id)
-        setUser({ ...data, email: session?.user?.email })
+        setUser({ ...data, email: data.email })
       } else {
         setUser(null)
         setRole(null)
@@ -32,17 +32,21 @@ export function useAuth() {
     } finally {
       setLoading(false)
     }
-  }, [session])
+  }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session)
+        if (session?.user) {
+          fetchUserProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch(() => {
         setLoading(false)
-      }
-    })
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
