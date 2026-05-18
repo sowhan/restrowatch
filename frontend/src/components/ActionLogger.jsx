@@ -12,7 +12,7 @@ const ACTION_TYPES = [
   { value: 'note', label: 'Add Note' },
 ]
 
-export default function ActionLogger({ reviewId, onActionLogged }) {
+export default function ActionLogger({ reviewId, review, onActionLogged }) {
   const [selectedAction, setSelectedAction] = useState(null)
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
@@ -93,7 +93,7 @@ export default function ActionLogger({ reviewId, onActionLogged }) {
         </div>
       )}
 
-      {reviewId && review.status !== 'resolved' && (
+      {reviewId && review?.status !== 'resolved' && (
         <button
           onClick={handleResolve}
           disabled={loading}
