@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useRealtimeReviews } from '../hooks/useRealtimeReviews'
@@ -12,7 +12,7 @@ export default function OwnerDashboard() {
   const { user, signOut, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [overview, setOverview] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -20,6 +20,11 @@ export default function OwnerDashboard() {
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [filterRestaurant, setFilterRestaurant] = useState('all')
+
+  useEffect(() => {
+    const restaurantFromQuery = searchParams.get('restaurant')
+    setFilterRestaurant(restaurantFromQuery || 'all')
+  }, [searchParams])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,10 +59,25 @@ export default function OwnerDashboard() {
 
   const liveReviews = useRealtimeReviews(reviews)
 
+  const restaurantOptions = overview?.restaurants || []
+  const selectedRestaurant = useMemo(
+    () => restaurantOptions.find((r) => String(r.restaurant_id) === String(filterRestaurant)),
+    [restaurantOptions, filterRestaurant]
+  )
+
+  const handleRestaurantFilter = (restaurantId) => {
+    setFilterRestaurant(restaurantId)
+    if (restaurantId === 'all') {
+      setSearchParams({})
+      return
+    }
+    setSearchParams({ restaurant: restaurantId })
+  }
+
   const filteredReviews = liveReviews.filter((r) => {
     if (filterSeverity !== 'all' && r.severity !== filterSeverity) return false
     if (filterPlatform !== 'all' && r.platform !== filterPlatform) return false
-    if (filterRestaurant !== 'all' && r.restaurant_id !== filterRestaurant) return false
+    if (filterRestaurant !== 'all' && String(r.restaurant_id) !== String(filterRestaurant)) return false
     return true
   })
 
@@ -143,7 +163,58 @@ export default function OwnerDashboard() {
           </div>
         )}
 
+        {selectedRestaurant && (
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Per Restaurant View</p>
+                <h3 className="text-lg font-semibold">{selectedRestaurant.restaurant_name}</h3>
+                <p className="text-xs text-gray-500">{selectedRestaurant.city || 'City not available'}</p>
+              </div>
+              <button
+                onClick={() => handleRestaurantFilter('all')}
+                className="text-xs px-3 py-1 rounded border border-border text-gray-300 hover:text-white"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <StatCard label="Open Issues" value={selectedRestaurant.open_issues} color="critical" />
+              <StatCard label="SLA Breached" value={selectedRestaurant.sla_breached} color="high" />
+              <StatCard label="Resolved Today" value={selectedRestaurant.resolved_today} color="low" />
+              <StatCard label="Avg Rating" value={selectedRestaurant.avg_rating || 'N/A'} />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-400 mr-2">Restaurant:</span>
+            <button
+              onClick={() => handleRestaurantFilter('all')}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                filterRestaurant === 'all'
+                  ? 'bg-accent text-white'
+                  : 'bg-card border border-border text-gray-400 hover:text-white'
+              }`}
+            >
+              All
+            </button>
+            {restaurantOptions.map((r) => (
+              <button
+                key={r.restaurant_id}
+                onClick={() => handleRestaurantFilter(String(r.restaurant_id))}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  String(filterRestaurant) === String(r.restaurant_id)
+                    ? 'bg-accent text-white'
+                    : 'bg-card border border-border text-gray-400 hover:text-white'
+                }`}
+              >
+                {r.restaurant_name}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-400 mr-2">Severity:</span>
             {['all', 'critical', 'high', 'medium', 'low'].map((s) => (
@@ -181,7 +252,7 @@ export default function OwnerDashboard() {
 
         <div>
           <h2 className="text-lg font-semibold mb-3">
-            Live Review Feed
+            {selectedRestaurant ? `${selectedRestaurant.restaurant_name} Reviews` : 'Live Review Feed'}
             <span className="text-sm text-gray-500 font-normal ml-2">
               ({sortedReviews.length} reviews)
             </span>

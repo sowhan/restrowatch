@@ -16,6 +16,7 @@ export default function ManagerDashboard() {
   const [error, setError] = useState(null)
   const [filterSeverity, setFilterSeverity] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterPlatform, setFilterPlatform] = useState('all')
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,14 +55,22 @@ export default function ManagerDashboard() {
   const filteredReviews = liveReviews.filter((r) => {
     if (filterSeverity !== 'all' && r.severity !== filterSeverity) return false
     if (filterStatus !== 'all' && r.status !== filterStatus) return false
+    if (filterPlatform !== 'all' && r.platform !== filterPlatform) return false
     return true
   })
 
+  const sortedReviews = [...filteredReviews].sort((a, b) => {
+    if (a.status === 'open' && b.status !== 'open') return -1
+    if (a.status !== 'open' && b.status === 'open') return 1
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+    return (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3)
+  })
+
   const stats = {
-    total: reviews.length,
-    open: reviews.filter((r) => r.status === 'open').length,
-    critical: reviews.filter((r) => r.severity === 'critical' && r.status !== 'resolved').length,
-    resolved: reviews.filter((r) => r.status === 'resolved').length,
+    total: liveReviews.length,
+    open: liveReviews.filter((r) => r.status === 'open').length,
+    critical: liveReviews.filter((r) => r.severity === 'critical' && r.status !== 'resolved').length,
+    resolved: liveReviews.filter((r) => r.status === 'resolved').length,
   }
 
   if (authLoading || !user) return null
@@ -153,9 +162,23 @@ export default function ManagerDashboard() {
               {s === 'all' ? 'All' : s.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
             </button>
           ))}
+          <span className="text-sm text-gray-400 ml-4 mr-2">Platform:</span>
+          {['all', 'swiggy', 'zomato'].map((p) => (
+            <button
+              key={p}
+              onClick={() => setFilterPlatform(p)}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                filterPlatform === p
+                  ? 'bg-accent text-white'
+                  : 'bg-card border border-border text-gray-400 hover:text-white'
+              }`}
+            >
+              {p === 'all' ? 'Both' : p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
         </div>
 
-        <LiveFeed reviews={filteredReviews} loading={loading} />
+        <LiveFeed reviews={sortedReviews} loading={loading} />
       </main>
     </div>
   )

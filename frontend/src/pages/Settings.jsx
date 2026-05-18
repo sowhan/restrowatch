@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 import { gmailApi, settingsApi } from '../lib/api'
@@ -9,6 +9,7 @@ export default function Settings() {
   const { user, signOut, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [gmailStatus, setGmailStatus] = useState(null)
   const [unmatchedEmails, setUnmatchedEmails] = useState([])
   const [restaurants, setRestaurants] = useState([])
@@ -26,6 +27,21 @@ export default function Settings() {
       loadData()
     }
   }, [user])
+
+  useEffect(() => {
+    const gmailState = searchParams.get('gmail')
+    if (!gmailState) return
+
+    if (gmailState === 'connected') {
+      const email = searchParams.get('email')
+      addToast(email ? `Gmail connected: ${email}` : 'Gmail connected successfully', 'success')
+      loadData()
+    } else if (gmailState === 'error') {
+      addToast(searchParams.get('reason') || 'Gmail connection failed', 'error')
+    }
+
+    setSearchParams({})
+  }, [searchParams, addToast, setSearchParams])
 
   const loadData = async () => {
     try {
@@ -140,7 +156,7 @@ export default function Settings() {
         {user.role === 'owner' && (
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Gmail Connection</h2>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className={`text-sm font-medium ${gmailStatus?.connected ? 'text-low' : 'text-gray-400'}`}>
                   {gmailStatus?.connected ? 'Connected' : 'Not Connected'}
@@ -150,6 +166,24 @@ export default function Settings() {
                     Last synced: {formatFullDate(gmailStatus.last_synced_at)}
                   </p>
                 )}
+                {gmailStatus?.connected && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <span className={`text-[11px] px-2 py-0.5 rounded border ${gmailStatus?.can_read_mail ? 'text-low border-low/40 bg-low/10' : 'text-gray-400 border-border'}`}>
+                      {gmailStatus?.can_read_mail ? 'Mailbox access verified' : 'Mailbox access pending'}
+                    </span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded border ${gmailStatus?.has_refresh_token ? 'text-accent border-accent/40 bg-accent/10' : 'text-gray-400 border-border'}`}>
+                      {gmailStatus?.has_refresh_token ? 'Auto refresh enabled' : 'No refresh token'}
+                    </span>
+                  </div>
+                )}
+                {gmailStatus?.token_expiry && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Token expiry: {formatFullDate(gmailStatus.token_expiry)}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Tip: run <span className="text-gray-300">Trigger Poll</span> after connecting to confirm reviews sync.
+                </p>
               </div>
               <div className="flex gap-2">
                 {!gmailStatus?.connected && (
