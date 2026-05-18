@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 
@@ -50,6 +50,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg">
       <div className="bg-card border border-border rounded-xl p-8 w-full max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img src="/logo.svg" alt="RestroWatch" className="w-24 h-24" />
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-accent">RestroWatch</h1>
           <p className="text-gray-400 text-sm mt-2">Restaurant Review Escalation Dashboard</p>
@@ -111,6 +116,28 @@ export default function Login() {
         <p className="text-center text-xs text-gray-500 mt-6">
           Contact your administrator to get login credentials
         </p>
+
+        {/* Disclaimer and Links */}
+        <div className="border-t border-border mt-6 pt-4">
+          <p className="text-center text-xs text-gray-400 mb-3">
+            By continuing to use this application, you agree to our
+          </p>
+          <div className="flex justify-center gap-2 flex-wrap">
+            <Link
+              to="/privacy-policy"
+              className="text-accent text-xs hover:text-orange-400 transition-colors underline"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-gray-500 text-xs">and</span>
+            <Link
+              to="/terms-of-service"
+              className="text-accent text-xs hover:text-orange-400 transition-colors underline"
+            >
+              Terms of Service
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )
