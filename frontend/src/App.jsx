@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ToastProvider } from './components/Toast'
 import Login from './pages/Login'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 import OwnerDashboard from './pages/OwnerDashboard'
 import ManagerDashboard from './pages/ManagerDashboard'
 import ReviewDetail from './pages/ReviewDetail'
@@ -77,6 +79,8 @@ function AppRoutes() {
     <ErrorBoundary key={location.pathname}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route
           path="/owner"
           element={
