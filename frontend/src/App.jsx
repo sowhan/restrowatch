@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ToastProvider } from './components/Toast'
 import Login from './pages/Login'
@@ -60,50 +60,58 @@ function RedirectToDashboard() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/owner"
-                element={
-                  <ProtectedRoute requiredRole="owner">
-                    <OwnerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/manager"
-                element={
-                  <ProtectedRoute requiredRole="manager">
-                    <ManagerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reviews/:id"
-                element={
-                  <ProtectedRoute>
-                    <ReviewDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/" element={<RedirectToDashboard />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
+  )
+}
+
+function AppRoutes() {
+  const location = useLocation()
+
+  return (
+    <ErrorBoundary key={location.pathname}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/owner"
+          element={
+            <ProtectedRoute requiredRole="owner">
+              <OwnerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute requiredRole="manager">
+              <ManagerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/:id"
+          element={
+            <ProtectedRoute>
+              <ReviewDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/" element={<RedirectToDashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </ErrorBoundary>
   )
 }

@@ -77,6 +77,24 @@ export default function ReviewDetail() {
   }
 
   const restaurant = review.restaurants || {}
+  const detailRows = [
+    { label: 'Review ID', value: review.id },
+    { label: 'Order Number', value: review.order_id ? `#${review.order_id}` : null },
+    { label: 'Customer', value: review.customer_name || null },
+    { label: 'Restaurant', value: restaurant.name || null },
+    { label: 'City', value: restaurant.city || null },
+    { label: 'Cuisine', value: restaurant.cuisine || null },
+    { label: 'Platform', value: review.platform ? review.platform.charAt(0).toUpperCase() + review.platform.slice(1) : null },
+    { label: 'Rating', value: review.rating ? `${review.rating}/5` : null },
+    { label: 'Severity', value: review.severity ? review.severity.charAt(0).toUpperCase() + review.severity.slice(1) : null },
+    { label: 'Status', value: review.status ? review.status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null },
+    { label: 'Email Received', value: formatFullDate(review.email_received_at) || null },
+    { label: 'Detected', value: formatFullDate(review.detected_at) || null },
+    { label: 'First Viewed', value: formatFullDate(review.first_viewed_at) || null },
+    { label: 'First Action', value: formatFullDate(review.first_action_at) || null },
+    { label: 'Resolved', value: formatFullDate(review.resolved_at) || null },
+    { label: 'Created', value: formatFullDate(review.created_at) || null },
+  ].filter((item) => item.value)
 
   return (
     <div className="min-h-screen bg-bg">
@@ -99,27 +117,13 @@ export default function ReviewDetail() {
 
       <main className="p-6 max-w-3xl mx-auto space-y-6">
         <div className="bg-card border border-border rounded-lg p-6">
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-            {review.customer_name && (
-              <div>
-                <span className="text-gray-500">Customer:</span>
-                <span className="ml-2 text-white">{review.customer_name}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
+            {detailRows.map((item) => (
+              <div key={item.label}>
+                <span className="text-gray-500">{item.label}:</span>
+                <span className="ml-2 text-white">{item.value}</span>
               </div>
-            )}
-            {review.order_id && (
-              <div>
-                <span className="text-gray-500">Order:</span>
-                <span className="ml-2 text-white">#{review.order_id}</span>
-              </div>
-            )}
-            <div>
-              <span className="text-gray-500">Platform:</span>
-              <span className="ml-2 text-white capitalize">{review.platform}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Received:</span>
-              <span className="ml-2 text-white">{formatFullDate(review.email_received_at || review.detected_at)}</span>
-            </div>
+            ))}
           </div>
 
           <div className="bg-bg border border-border rounded-lg p-4">
