@@ -10,11 +10,24 @@ const api = axios.create({
   },
 })
 
+let accessToken = null
+
+supabase.auth.getSession().then(({ data }) => {
+  accessToken = data.session?.access_token || null
+})
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  accessToken = session?.access_token || null
+})
+
 api.interceptors.request.use(async (config) => {
   try {
-    const { data } = await supabase.auth.getSession()
-    if (data.session?.access_token) {
-      config.headers.Authorization = `Bearer ${data.session.access_token}`
+    if (!accessToken) {
+      const { data } = await supabase.auth.getSession()
+      accessToken = data.session?.access_token || null
+    }
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`
     }
   } catch {
     // No session, continue without auth

@@ -90,6 +90,20 @@ create table if not exists gmail_credentials (
   updated_at timestamptz default now()
 );
 
+-- Performance indexes for common dashboard and list queries
+create index if not exists idx_restaurants_name on restaurants(name);
+create index if not exists idx_restaurants_email_alias_lower on restaurants(lower(email_alias));
+
+create index if not exists idx_reviews_detected_at on reviews(detected_at desc);
+create index if not exists idx_reviews_created_at on reviews(created_at desc);
+create index if not exists idx_reviews_resolved_at on reviews(resolved_at desc);
+create index if not exists idx_reviews_restaurant_status on reviews(restaurant_id, status);
+create index if not exists idx_reviews_severity_status on reviews(severity, status);
+create index if not exists idx_reviews_platform on reviews(platform);
+
+create index if not exists idx_review_actions_review_created_at on review_actions(review_id, created_at desc);
+create index if not exists idx_unmatched_emails_created_at on unmatched_emails(created_at desc);
+
 -- Enable Row Level Security
 alter table restaurants enable row level security;
 alter table users enable row level security;

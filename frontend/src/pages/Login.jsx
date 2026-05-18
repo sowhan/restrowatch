@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 
 const ERROR_MESSAGES = {
@@ -17,6 +17,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { addToast } = useToast()
+  const { signIn } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -25,17 +26,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (signInError) throw signInError
-
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', (await supabase.auth.getUser()).data.user.id)
-        .single()
+      const { hydratedUser: profile } = await signIn(email, password)
 
       if (!profile) {
         setError('No account found. Contact your administrator.')
